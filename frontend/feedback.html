@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Submit Feedback — Wheeltrix</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Wheel<span class="dot">trix</span></div>
+    <a class="side-link active" href="feedback.html">📝 Submit feedback</a>
+    <a class="side-link" href="#" id="tabHistoryLink">🎟️ My tickets</a>
+    <a class="side-link" id="adminLink" href="dashboard.html" style="display:none;">📊 Admin dashboard</a>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <div class="avatar" id="avatarInitials">--</div>
+      <div>
+        <div class="name" id="userName">Loading…</div>
+        <div class="role" id="userRole">—</div>
+      </div>
+    </div>
+    <a class="btn btn-ghost btn-block" href="#" onclick="logout()" style="margin-top:10px;">Log out</a>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Hi <span id="greetName">there</span> — what's on your mind?</h1>
+        <p>Your details are pre-filled below. Pick a category, rate it, and tell us what happened.</p>
+      </div>
+    </div>
+
+    <!-- Employee details card -->
+    <div class="panel" style="margin-bottom:24px;">
+      <div class="panel-head"><h3>Your employee details</h3><span class="ticket-badge" id="empIdBadge">—</span></div>
+      <div style="padding:22px; display:grid; grid-template-columns:repeat(4,1fr); gap:18px;">
+        <div><div class="field-label" style="color:var(--text-faint); font-size:0.78rem;">Name</div><div id="dFullName" style="font-weight:600; margin-top:4px;">—</div></div>
+        <div><div style="color:var(--text-faint); font-size:0.78rem;">Department</div><div id="dDept" style="font-weight:600; margin-top:4px;">—</div></div>
+        <div><div style="color:var(--text-faint); font-size:0.78rem;">Designation</div><div id="dDesig" style="font-weight:600; margin-top:4px;">—</div></div>
+        <div><div style="color:var(--text-faint); font-size:0.78rem;">Email</div><div id="dEmail" style="font-weight:600; margin-top:4px;">—</div></div>
+      </div>
+    </div>
+
+    <!-- Submission form -->
+    <div class="panel" id="formPanel">
+      <div class="panel-head"><h3>New feedback ticket</h3></div>
+      <form id="feedbackForm" style="padding:24px;">
+        <div class="alert alert-error" id="errorBox"></div>
+
+        <div class="field">
+          <label>Category</label>
+          <div class="chip-group" id="categoryChips">
+            <div class="chip" data-value="Workplace">Workplace</div>
+            <div class="chip" data-value="Management">Management</div>
+            <div class="chip" data-value="Facilities">Facilities</div>
+            <div class="chip" data-value="IT & Tools">IT &amp; Tools</div>
+            <div class="chip" data-value="Policy">Policy</div>
+            <div class="chip" data-value="Other">Other</div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>How was your experience?</label>
+            <div class="star-input" id="starInput">
+              <span data-value="1">★</span><span data-value="2">★</span><span data-value="3">★</span><span data-value="4">★</span><span data-value="5">★</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="channel">Submitting via</label>
+            <select id="channel" name="channel">
+              <option>Web</option>
+              <option>Mobile</option>
+              <option>Kiosk</option>
+              <option>Email</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="subject">Subject</label>
+          <input id="subject" name="subject" type="text" placeholder="Short summary, e.g. Slow laptop replacement process" required />
+        </div>
+
+        <div class="field">
+          <label for="message">Details</label>
+          <textarea id="message" name="message" placeholder="Tell us what happened, when, and any context that helps us act on it." required></textarea>
+        </div>
+
+        <div class="field" style="display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="anonymous" style="width:auto;" />
+          <label for="anonymous" style="margin:0;">Submit anonymously to reviewers (your ticket is still linked to your account internally)</label>
+        </div>
+
+        <button class="btn btn-primary" type="submit" id="submitBtn">Submit feedback →</button>
+      </form>
+    </div>
+
+    <!-- Confirmation ticket (hidden until submit) -->
+    <div id="confirmWrap" style="display:none; margin-top:24px;">
+      <div class="ticket">
+        <div class="ticket-top">
+          <div>
+            <div class="ticket-label">Wheeltrix · Feedback Ticket</div>
+            <div class="ticket-id" id="cTicketNo">—</div>
+          </div>
+          <div class="ticket-badge" id="cStatus">Open</div>
+        </div>
+        <h3 id="cSubject">—</h3>
+        <div class="row"><span>Category</span><b id="cCategory">—</b></div>
+        <div class="row"><span>Submitted by</span><b id="cName">—</b></div>
+        <div class="row"><span>Rating</span><b class="stars" id="cStars">—</b></div>
+        <div class="tear"></div>
+        <div class="row"><span>Submitted</span><b id="cDate">—</b></div>
+        <div class="barcode"></div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-ghost" id="newTicketBtn">Submit another</button>
+      </div>
+    </div>
+
+    <!-- My tickets history -->
+    <div class="panel" id="historyPanel" style="margin-top:30px; display:none;">
+      <div class="panel-head"><h3>My tickets</h3></div>
+      <div id="historyTableWrap"></div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<script src="js/api.js"></script>
+<script>
+  requireLogin();
+  const user = getUser();
+
+  document.getElementById("userName").textContent = user.fullName;
+  document.getElementById("userRole").textContent = user.role === "admin" ? "Administrator" : user.employeeId;
+  document.getElementById("avatarInitials").textContent = initials(user.fullName);
+  document.getElementById("greetName").textContent = user.fullName.split(" ")[0];
+  document.getElementById("empIdBadge").textContent = user.employeeId;
+  document.getElementById("dFullName").textContent = user.fullName;
+  document.getElementById("dDept").textContent = user.department;
+  document.getElementById("dDesig").textContent = user.designation || "—";
+  document.getElementById("dEmail").textContent = user.email;
+  if (user.role === "admin") document.getElementById("adminLink").style.display = "flex";
+
+  // ---- category chips ----
+  let selectedCategory = null;
+  document.querySelectorAll("#categoryChips .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll("#categoryChips .chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      selectedCategory = chip.dataset.value;
+    });
+  });
+
+  // ---- star rating ----
+  let selectedRating = 0;
+  document.querySelectorAll("#starInput span").forEach((star) => {
+    star.addEventListener("click", () => {
+      selectedRating = parseInt(star.dataset.value, 10);
+      document.querySelectorAll("#starInput span").forEach((s) => {
+        s.classList.toggle("active", parseInt(s.dataset.value, 10) <= selectedRating);
+      });
+    });
+  });
+
+  const form = document.getElementById("feedbackForm");
+  const errorBox = document.getElementById("errorBox");
+  const submitBtn = document.getElementById("submitBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorBox.classList.remove("show");
+
+    if (!selectedCategory) { showError("Please choose a category."); return; }
+    if (!selectedRating) { showError("Please rate your experience."); return; }
+
+    const payload = {
+      category: selectedCategory,
+      channel: form.channel.value,
+      rating: selectedRating,
+      subject: form.subject.value.trim(),
+      message: form.message.value.trim(),
+      anonymous: form.anonymous.checked,
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
+    try {
+      const data = await apiRequest("/feedback", { method: "POST", body: payload });
+      renderConfirmation(data.feedback);
+      document.getElementById("formPanel").style.display = "none";
+      document.getElementById("confirmWrap").style.display = "block";
+      showToast("Feedback submitted — ticket generated.");
+      loadHistory();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit feedback →";
+    }
+  });
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.add("show");
+  }
+
+  function renderConfirmation(fb) {
+    document.getElementById("cTicketNo").textContent = fb.ticketNo;
+    document.getElementById("cStatus").textContent = fb.status;
+    document.getElementById("cSubject").textContent = fb.subject;
+    document.getElementById("cCategory").textContent = fb.category;
+    document.getElementById("cName").textContent = fb.anonymous ? "Anonymous" : fb.employeeSnapshot.fullName;
+    document.getElementById("cStars").textContent = "★".repeat(fb.rating) + "☆".repeat(5 - fb.rating);
+    document.getElementById("cDate").textContent = fmtDate(fb.createdAt);
+  }
+
+  document.getElementById("newTicketBtn").addEventListener("click", () => {
+    form.reset();
+    selectedCategory = null;
+    selectedRating = 0;
+    document.querySelectorAll("#categoryChips .chip").forEach((c) => c.classList.remove("active"));
+    document.querySelectorAll("#starInput span").forEach((s) => s.classList.remove("active"));
+    document.getElementById("confirmWrap").style.display = "none";
+    document.getElementById("formPanel").style.display = "block";
+  });
+
+  // ---- history ----
+  const badgeClass = { Open: "badge-open", "In Review": "badge-review", Resolved: "badge-resolved", Closed: "badge-closed" };
+
+  async function loadHistory() {
+    try {
+      const data = await apiRequest("/feedback/my");
+      const panel = document.getElementById("historyPanel");
+      const wrap = document.getElementById("historyTableWrap");
+      panel.style.display = "block";
+
+      if (!data.feedback.length) {
+        wrap.innerHTML = `<div class="empty-state"><div class="glyph">🎟️</div>No tickets yet — submit your first one above.</div>`;
+        return;
+      }
+
+      const rows = data.feedback.map((fb) => `
+        <tr>
+          <td class="mono">${fb.ticketNo}</td>
+          <td>${fb.subject}</td>
+          <td>${fb.category}</td>
+          <td>${"★".repeat(fb.rating)}${"☆".repeat(5 - fb.rating)}</td>
+          <td><span class="badge ${badgeClass[fb.status]}">${fb.status}</span></td>
+          <td>${fmtDate(fb.createdAt)}</td>
+        </tr>`).join("");
+
+      wrap.innerHTML = `
+        <table>
+          <thead><tr><th>Ticket</th><th>Subject</th><th>Category</th><th>Rating</th><th>Status</th><th>Submitted</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  document.getElementById("tabHistoryLink").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("historyPanel").scrollIntoView({ behavior: "smooth" });
+  });
+
+  loadHistory();
+</script>
+</body>
+</html>

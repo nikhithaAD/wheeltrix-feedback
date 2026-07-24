@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard — Wheeltrix Feedback</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Wheel<span class="dot">trix</span></div>
+    <a class="side-link" href="feedback.html">📝 Submit feedback</a>
+    <a class="side-link active" href="dashboard.html">📊 Admin dashboard</a>
+    <div class="spacer"></div>
+    <div class="user-chip">
+      <div class="avatar" id="avatarInitials">--</div>
+      <div>
+        <div class="name" id="userName">Loading…</div>
+        <div class="role" id="userRole">—</div>
+      </div>
+    </div>
+    <a class="btn btn-ghost btn-block" href="#" onclick="logout()" style="margin-top:10px;">Log out</a>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>All feedback tickets</h1>
+        <p>Every ticket submitted across the company, in one place.</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <input id="searchBox" placeholder="Search subject, message, ticket no…" style="padding:11px 14px; border-radius:10px; border:1px solid var(--line); background:var(--surface-2); color:var(--text); min-width:260px;" />
+        <select id="statusFilter" class="status-select">
+          <option value="">All statuses</option>
+          <option>Open</option>
+          <option>In Review</option>
+          <option>Resolved</option>
+          <option>Closed</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="label">Total tickets</div><div class="value" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="label">Open</div><div class="value" id="statOpen">—</div></div>
+      <div class="stat-card"><div class="label">Avg. rating</div><div class="value" id="statAvg">— <span class="unit">/5</span></div></div>
+      <div class="stat-card"><div class="label">Top department</div><div class="value" id="statDept" style="font-size:1.2rem;">—</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Tickets</h3>
+        <span class="ticket-label" id="resultCount"></span>
+      </div>
+      <div id="tableWrap"></div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<script src="js/api.js"></script>
+<script>
+  requireAdminOrRedirect();
+  const user = getUser();
+  document.getElementById("userName").textContent = user.fullName;
+  document.getElementById("userRole").textContent = "Administrator";
+  document.getElementById("avatarInitials").textContent = initials(user.fullName);
+
+  const badgeClass = { Open: "badge-open", "In Review": "badge-review", Resolved: "badge-resolved", Closed: "badge-closed" };
+  let allFeedback = [];
+
+  async function loadStats() {
+    try {
+      const s = await apiRequest("/feedback/stats/summary");
+      document.getElementById("statTotal").textContent = s.total;
+      const open = s.byStatus.find((x) => x._id === "Open")?.count || 0;
+      document.getElementById("statOpen").textContent = open;
+      document.getElementById("statAvg").innerHTML = `${s.avgRating.toFixed(1)} <span class="unit">/5</span>`;
+      document.getElementById("statDept").textContent = s.byDept[0]?._id || "—";
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  async function loadFeedback() {
+    try {
+      const status = document.getElementById("statusFilter").value;
+      const q = document.getElementById("searchBox").value.trim();
+      const params = new URLSearchParams();
+      if (status) params.set("status", status);
+      if (q) params.set("q", q);
+
+      const data = await apiRequest(`/feedback?${params.toString()}`);
+      allFeedback = data.feedback;
+      renderTable();
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  function renderTable() {
+    const wrap = document.getElementById("tableWrap");
+    document.getElementById("resultCount").textContent = `${allFeedback.length} result(s)`;
+
+    if (!allFeedback.length) {
+      wrap.innerHTML = `<div class="empty-state"><div class="glyph">📭</div>No tickets match this filter.</div>`;
+      return;
+    }
+
+    const rows = allFeedback.map((fb) => `
+      <tr>
+        <td class="mono">${fb.ticketNo}</td>
+        <td>
+          <div style="font-weight:600;">${fb.subject}</div>
+          <div style="color:var(--text-faint); font-size:0.82rem; max-width:320px;">${fb.message.slice(0, 90)}${fb.message.length > 90 ? "…" : ""}</div>
+        </td>
+        <td>${fb.anonymous ? "Anonymous" : fb.employeeSnapshot.fullName}<br/><span style="color:var(--text-faint); font-size:0.78rem;">${fb.employeeSnapshot.department}</span></td>
+        <td>${fb.category}</td>
+        <td>${"★".repeat(fb.rating)}${"☆".repeat(5 - fb.rating)}</td>
+        <td>
+          <select class="status-select" data-id="${fb._id}">
+            ${["Open", "In Review", "Resolved", "Closed"].map((s) => `<option ${s === fb.status ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </td>
+        <td>${fmtDate(fb.createdAt)}</td>
+      </tr>`).join("");
+
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Ticket</th><th>Subject</th><th>Employee</th><th>Category</th><th>Rating</th><th>Status</th><th>Submitted</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    wrap.querySelectorAll("select.status-select").forEach((sel) => {
+      sel.addEventListener("change", async () => {
+        try {
+          await apiRequest(`/feedback/${sel.dataset.id}`, { method: "PATCH", body: { status: sel.value } });
+          showToast("Status updated.");
+          loadStats();
+        } catch (err) {
+          showToast(err.message);
+        }
+      });
+    });
+  }
+
+  document.getElementById("statusFilter").addEventListener("change", loadFeedback);
+  let searchTimer;
+  document.getElementById("searchBox").addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadFeedback, 300);
+  });
+
+  loadStats();
+  loadFeedback();
+</script>
+</body>
+</html>

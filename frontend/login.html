@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Log in — Wheeltrix Feedback</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-side">
+    <a class="brand" href="index.html">Wheel<span class="dot">trix</span></a>
+    <div class="auth-quote">
+      <h2>"Welcome back. Your ticket history is exactly where you left it."</h2>
+      <p>Log in with your employee ID or work email to submit or track feedback.</p>
+    </div>
+    <svg viewBox="0 0 300 160" width="220">
+      <rect x="0" y="10" width="220" height="130" rx="16" fill="#123f3a" stroke="#24564f" stroke-width="2"/>
+      <circle cx="0" cy="75" r="12" fill="#07211f"/>
+      <circle cx="220" cy="75" r="12" fill="#07211f"/>
+      <line x1="16" y1="75" x2="204" y2="75" stroke="#24564f" stroke-width="2" stroke-dasharray="5 5"/>
+      <text x="18" y="40" fill="#a7c9c0" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="2">RETURNING USER</text>
+      <text x="18" y="105" fill="#eaf3ef" font-family="Fraunces, serif" font-size="16" font-weight="600">Welcome back</text>
+      <text x="18" y="126" fill="#dba456" font-family="IBM Plex Mono, monospace" font-size="11">SECURE · TOKEN-BASED</text>
+    </svg>
+  </div>
+
+  <div class="auth-form-wrap">
+    <div class="auth-form">
+      <h1>Log in</h1>
+      <p class="sub">Enter your employee ID or email and password.</p>
+
+      <div class="alert alert-error" id="errorBox"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="identifier">Employee ID or email</label>
+          <input id="identifier" name="identifier" type="text" placeholder="WX-1042 or you@wheeltrix.in" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="••••••••" required />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="submitBtn">Log in</button>
+      </form>
+
+      <div class="form-footer">New here? <a href="register.html">Create an account</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="js/api.js"></script>
+<script>
+  const form = document.getElementById("loginForm");
+  const errorBox = document.getElementById("errorBox");
+  const submitBtn = document.getElementById("submitBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorBox.classList.remove("show");
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Logging in…";
+
+    try {
+      const data = await apiRequest("/auth/login", {
+        method: "POST",
+        auth: false,
+        body: { identifier: form.identifier.value.trim(), password: form.password.value },
+      });
+      setSession(data.token, data.user);
+      showToast(`Welcome back, ${data.user.fullName.split(" ")[0]}!`);
+      setTimeout(() => {
+        window.location.href = data.user.role === "admin" ? "dashboard.html" : "feedback.html";
+      }, 500);
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.classList.add("show");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Log in";
+    }
+  });
+</script>
+</body>
+</html>
